@@ -1,8 +1,7 @@
-from typing import Callable, Optional, Union
+from typing import Callable
 
 import e3nn_jax as e3nn
 import flax
-import haiku as hk
 import jax
 import jax.numpy as jnp
 
@@ -44,61 +43,10 @@ class NEQUIPLayerFlax(flax.linen.Module):
         )
 
 
-class NEQUIPLayerHaiku(hk.Module):
-    def __init__(
-        self,
-        avg_num_neighbors: float,
-        num_species: int = 1,
-        max_ell: int = 3,
-        output_irreps: e3nn.Irreps = 64 * e3nn.Irreps("0e + 1o + 2e"),
-        even_activation: Callable[[jnp.ndarray], jnp.ndarray] = jax.nn.silu,
-        odd_activation: Callable[[jnp.ndarray], jnp.ndarray] = jax.nn.tanh,
-        gate_activation: Callable[[jnp.ndarray], jnp.ndarray] = jax.nn.silu,
-        mlp_activation: Callable[[jnp.ndarray], jnp.ndarray] = jax.nn.silu,
-        mlp_n_hidden: int = 64,
-        mlp_n_layers: int = 2,
-        radial_basis: Callable[[jnp.ndarray, int], jnp.ndarray] = default_radial_basis,
-        n_radial_basis: int = 8,
-        name: Optional[str] = None,
-    ):
-        super().__init__(name)
-        self.avg_num_neighbors = avg_num_neighbors
-        self.num_species = num_species
-        self.max_ell = max_ell
-        self.output_irreps = output_irreps
-        self.even_activation = even_activation
-        self.odd_activation = odd_activation
-        self.gate_activation = gate_activation
-        self.mlp_activation = mlp_activation
-        self.mlp_n_hidden = mlp_n_hidden
-        self.mlp_n_layers = mlp_n_layers
-        self.radial_basis = radial_basis
-        self.n_radial_basis = n_radial_basis
-
-    def __call__(
-        self,
-        vectors: e3nn.IrrepsArray,
-        node_feats: e3nn.IrrepsArray,
-        node_specie: jnp.ndarray,
-        senders: jnp.ndarray,
-        receivers: jnp.ndarray,
-    ):
-        return _impl(
-            e3nn.haiku.Linear,
-            e3nn.haiku.MultiLayerPerceptron,
-            self,
-            vectors,
-            node_feats,
-            node_specie,
-            senders,
-            receivers,
-        )
-
-
 def _impl(
     Linear: Callable,
     MultiLayerPerceptron: Callable,
-    self: Union[NEQUIPLayerFlax, NEQUIPLayerHaiku],
+    self: NEQUIPLayerFlax,
     vectors: e3nn.IrrepsArray,  # [n_edges, 3]
     node_feats: e3nn.IrrepsArray,  # [n_nodes, irreps]
     node_specie: jnp.ndarray,  # [n_nodes] int between 0 and num_species-1
